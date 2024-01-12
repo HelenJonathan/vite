@@ -238,6 +238,156 @@ In library mode, all [`import.meta.env.*`](./env-and-mode.md) usage are statical
 Library mode includes a simple and opinionated configuration for browser-oriented and JS framework libraries. If you are building non-browser libraries, or require advanced build flows, you can use [Rollup](https://rollupjs.org) or [esbuild](https://esbuild.github.io) directly.
 :::
 
+# Building Multiple Entry Points with Vite configuration
+
+Vite allows you to create applications with various entry points, each representing a distinct starting point for your application. This guide explores several approaches for configuring multiple entry points using the Vite configuration.
+
+## Install Vite
+Before we begin, ensure you have Vite installed.
+If you haven't already installed Vite, you can do so using npm or yarn.
+
+```bash
+# Using npm
+npm init vite@latest my-vite-project -- --template [template]
+
+# Using yarn
+yarn create vite my-vite-project --template [template]
+```
+Replace `[template]` with your preferred template (e.g., react, vue, vanilla, etc.).
+
+
+## Method 1: Object Configuration
+
+This approach involves defining multiple entry points using an object configuration within the `build.rollupOptions.input` property in your `vite.config.js` file.
+
+```javascript
+// vite.config.js
+import { defineConfig } from 'vite';
+
+export default defineConfig({
+  build: {
+    rollupOptions: {
+      input: {
+        file: 'src/file.js',
+        main: 'src/main.js',
+        app: 'src/app.js',
+        // Add more entry points as needed
+      },
+    },
+  },
+});
+```
+### Code Explanation:
+
+- The `input` object maps entry point names (`file`, `main`, `app`, etc.) to their corresponding file paths (`src/file.js`, `src/main.js`, `src/app.js`). Adjust the paths according to your project structure.
+- You can extend the object with additional entry points based on your project requirements.
+
+## Method 2: Dynamic Entry Points
+This approach allows you to generate the entry point configuration programmatically. This is useful when the number of entry points is determined at runtime.
+
+```javascript
+// vite.config.js
+import { defineConfig } from 'vite';
+import glob from 'glob';
+
+export default defineConfig({
+  build: {
+    rollupOptions: {
+      input: glob.sync('src/pages/*.js').reduce((entries, path) => {
+        const entryName = path.replace(/^src\/pages\/(.*)\.js$/, '$1');
+        entries[entryName] = path;
+        return entries;
+      }, {}),
+    },
+  },
+});
+```
+### Code Explanation:
+
+- The code uses the `glob` library to find JavaScript files within the `src/pages/` directory.
+- For each file, it extracts the entry point name from the file path and dynamically adds it to the `input` object.
+
+##  Method 3: Function Configuration
+This approach involves using a function to dynamically determine entry points based on the build environment.
+
+```javascript
+// vite.config.js
+import { defineConfig } from 'vite';
+
+export default defineConfig({
+  build: {
+    rollupOptions: {
+      input: () => {
+        if (process.env.NODE_ENV === 'production') {
+          return 'src/main.prod.js';
+        } else {
+          return 'src/main.dev.js';
+        }
+      },
+    },
+  },
+});
+```
+### Code Explanation:
+
+- The `input` property is set to a function that conditionally determines the entry point based on the `NODE_ENV` environment variable.
+- If the environment is 'production,' the function returns the path to the production entry point, otherwise, it returns the path to the development entry point.
+
+## Updating HTML Template
+After picking your preferred method of creating multiple entry points, in your HTML template (e.g., `public/index.html`), include script tags for each entry point. Ensure that there are placeholders (e.g., div elements) in your HTML to mount the components from each entry point.
+
+```html
+<!-- public/index.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Vite App</title>
+</head>
+<body>
+  <div id="file"></div>
+  <div id="main"></div>
+  <div id="app"></div>
+
+  <!-- Include script tags for each entry point -->
+  <script type="module" src="/main"></script>
+  <script type="module" src="/file"></script>
+  <script type="module" src="/app"></script>
+</body>
+</html>
+```
+### Code Explanation:
+
+- The HTML template includes placeholders (`<div id="file"></div>`, `<div id="main"></div>` and `<div id="app"></div>`) for rendering content from the respective entry points.
+- Script tags are added at the bottom to load each entry point using the type="module" attribute.
+
+**NOTE:**
+- Adjust the script tags based on the entry point names and paths defined in your Vite configuration.
+- Each entry point file should have an `Id` attribute that matches the `Id` in the div above.
+
+##  Run Your Vite Project
+Start the Vite development server by running the following command in your terminal.
+
+```
+bash
+npm run dev
+```
+
+This command will launch your Vite project, and you can access it in your browser at the specified URL (usually http://localhost:5173).
+
+## Access Entry Points
+Now, you can access each entry point by navigating to the corresponding URLs:
+
+- For the file entry point: http://localhost:5173/file
+- For the main entry point: http://localhost:5173/main
+- For the app entry point: http://localhost:5173/app
+
+Vite automatically handles the bundling and loading of your entry points based on your configuration. The script tags in your HTML file act as references to the entry point files, allowing them to be executed in the browser.
+
+
+
+
 ## Advanced Base Options
 
 ::: warning
